@@ -43,5 +43,8 @@
             default = nvim;
           };
         };
+	flake = {
+	  homeModules.default = import ./config;
+	}
     };
 }
