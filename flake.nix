@@ -45,6 +45,6 @@
         };
 	flake = {
 	  homeModules.default = import ./home-manager.nix;
-	}
+	};
     };
 }
