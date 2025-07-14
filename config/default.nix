@@ -33,7 +33,7 @@
 
   opts = {
     number = true;
-    relativenumber = true
+    relativenumber = true;
 
     # Enable mouse mode, can be useful for resizing splits for example!
     mouse = "a";
