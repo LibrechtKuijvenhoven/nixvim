@@ -2,13 +2,13 @@
   description = "A nixvim configuration";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     nixvim.url = "github:nix-community/nixvim";
     flake-parts.url = "github:hercules-ci/flake-parts";
   };
 
   outputs =
-    { nixvim, flake-parts, ... }@inputs:
+    { self, flake-parts, ... }@inputs:
     flake-parts.lib.mkFlake { inherit inputs; } {
       systems = [
         "x86_64-linux"
@@ -17,34 +17,38 @@
         "aarch64-darwin"
       ];
 
+      imports = [
+        # Import nixvim's flake-parts module;
+        # Adds `flake.nixvimModules` and `perSystem.nixvimConfigurations`
+        inputs.nixvim.flakeModules.default
+      ];
+
+      nixvim = {
+        # Automatically install corresponding packages for each nixvimConfiguration
+        # Lets you run `nix run .#<name>`, or simply `nix run` if you have a default
+        packages.enable = true;
+        # Automatically install checks for each nixvimConfiguration
+        # Run `nix flake check` to verify that your config is not broken
+        checks.enable = true;
+      };
+
+      # You can define your reusable Nixvim modules here
+      flake.nixvimModules = {
+        default = ./config;
+      };
+
       perSystem =
         { system, ... }:
-        let
-          nixvimLib = nixvim.lib.${system};
-          nixvim' = nixvim.legacyPackages.${system};
-          nixvimModule = {
-            inherit system; # or alternatively, set `pkgs`
-            module = import ./config; # import the module directly
-            # You can use `extraSpecialArgs` to pass additional arguments to your module files
-            extraSpecialArgs = {
-              # inherit (inputs) foo;
+        {
+          # You can define actual Nixvim configurations here
+          nixvimConfigurations = {
+            default = inputs.nixvim.lib.evalNixvim {
+              inherit system;
+              modules = [
+                self.nixvimModules.default
+              ];
             };
           };
-          nvim = nixvim'.makeNixvimWithModule nixvimModule;
-        in
-        {
-          checks = {
-            # Run `nix flake check .` to verify that your config is not broken
-            default = nixvimLib.check.mkTestDerivationFromNixvimModule nixvimModule;
-          };
-
-          packages = {
-            # Lets you run `nix run .` to start nixvim
-            default = nvim;
-          };
         };
-	flake = {
-	  homeModules.default = import ./home-manager.nix;
-	};
     };
 }
